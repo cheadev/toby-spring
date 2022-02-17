@@ -10,7 +10,8 @@ class UserDaoTest {
 
     @Test
     void addAndGet() throws SQLException, ClassNotFoundException {
-        UserDao dao = new UserDao();
+        ConnectionMaker connectionMaker = new DConnectionMaker();
+        UserDao dao = new UserDao(connectionMaker);
 
         User user = new User();
         user.setId("id");
