@@ -8,6 +8,12 @@ public class User {
     public User() {
     }
 
+    public User(String id, String name, String password) {
+        this.id = id;
+        this.name = name;
+        this.password = password;
+    }
+
     public String getId() {
         return id;
     }
@@ -30,5 +36,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        User user = (User) obj;
+        return id.equals(user.getId()) &&
+                name.equals(user.getName()) &&
+                password.equals(user.getPassword());
     }
 }
