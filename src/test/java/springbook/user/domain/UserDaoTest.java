@@ -4,12 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.sql.SQLException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ContextConfiguration(locations = "file:src/main/resources/applicationContext.xml")
 class UserDaoTest {
     @Autowired
-    private UserDao dao;
+    private UserDaoJdbc dao;
     private User user1;
     private User user2;
     private User user3;
@@ -31,9 +30,9 @@ class UserDaoTest {
     }
 
     @Test
-    void addAndGet() throws SQLException {
+    void addAndGet() {
         dao.deleteAll();
-        assertEquals(                              0, dao.getCount());
+        assertEquals(0, dao.getCount());
 
         dao.add(user1);
         dao.add(user2);
@@ -46,7 +45,7 @@ class UserDaoTest {
     }
 
     @Test
-    void getCount() throws SQLException {
+    void getCount() {
         dao.deleteAll();
         assertEquals(0, dao.getCount());
 
@@ -61,7 +60,7 @@ class UserDaoTest {
     }
 
     @Test
-    void getUserFailure() throws SQLException {
+    void getUserFailure() {
         dao.deleteAll();
         assertEquals(0, dao.getCount());
 
@@ -69,7 +68,14 @@ class UserDaoTest {
     }
 
     @Test
-    void getAll() throws SQLException {
+    void duplicateKey() {
+        dao.deleteAll();
+        dao.add(user1);
+        assertThrows(DataAccessException.class, ()->dao.add(user1));
+    }
+
+    @Test
+    void getAll() {
         dao.deleteAll();
 
         dao.add(user1);
