@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailSender;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -23,17 +24,19 @@ class UserServiceTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
+    private MailSender mailSender;
+    @Autowired
     private UserService userService;
     private List<User> users;
 
     @BeforeEach
     void setUp() {
         users = Arrays.asList(
-            new User("id1","name1","pwd1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER-1, 0),
-            new User("id2","name2","pwd2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
-            new User("id3","name3","pwd3", Level.SILVER, 60, MAX_RECOMMEND_FOR_GOLD-1),
-            new User("id4","name4","pwd4", Level.SILVER, 60, MAX_RECOMMEND_FOR_GOLD),
-            new User("id5","name5","pwd5", Level.GOLD, 100, 100)
+            new User("id1","name1","pwd1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER-1, 0, "aa@bb.cc"),
+            new User("id2","name2","pwd2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0, "aa@bb.cc"),
+            new User("id3","name3","pwd3", Level.SILVER, 60, MAX_RECOMMEND_FOR_GOLD-1, "aa@bb.cc"),
+            new User("id4","name4","pwd4", Level.SILVER, 60, MAX_RECOMMEND_FOR_GOLD, "aa@bb.cc"),
+            new User("id5","name5","pwd5", Level.GOLD, 100, 100, "aa@bb.cc")
         );
     }
 
@@ -61,6 +64,8 @@ class UserServiceTest {
         for(User user : users)
             userDao.add(user);
 
+        MockMailSender mockMailSender = new MockMailSender();
+        userService.setMailSender(mockMailSender);
         userService.upgradeLevels();
 
         assertTrue(checkLevel(users.get(0), Level.BASIC));
@@ -68,6 +73,11 @@ class UserServiceTest {
         assertTrue(checkLevel(users.get(2), Level.SILVER));
         assertTrue(checkLevel(users.get(3), Level.GOLD));
         assertTrue(checkLevel(users.get(4), Level.GOLD));
+
+        List<String> requests = mockMailSender.getRequests();
+        assertEquals(2, requests.size());
+        assertEquals(users.get(1).getEmail(), requests.get(0));
+        assertEquals(users.get(3).getEmail(), requests.get(1));
     }
 
     @Test
@@ -75,6 +85,7 @@ class UserServiceTest {
         UserService testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
         testUserService.setTransactionManager(transactionManager);
+        testUserService.setMailSender(mailSender);
 
         userDao.deleteAll();
         for(User user : users)
