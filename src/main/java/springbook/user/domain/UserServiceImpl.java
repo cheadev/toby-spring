@@ -35,12 +35,11 @@ public class UserServiceImpl implements UserService {
     }
 
     private boolean canUpgradeLevel(User user) {
-        switch (user.getLevel()) {
-            case BASIC : return user.getLogin() >= MIN_LOGCOUNT_FOR_SILVER;
-            case SILVER: return user.getRecommend() >= MAX_RECOMMEND_FOR_GOLD;
-            case GOLD: return false;
-            default: throw new IllegalArgumentException();
-        }
+        return switch (user.getLevel()) {
+            case BASIC -> user.getLogin() >= MIN_LOGCOUNT_FOR_SILVER;
+            case SILVER -> user.getRecommend() >= MAX_RECOMMEND_FOR_GOLD;
+            case GOLD -> false;
+        };
     }
 
     protected void upgradeLevel(User user) {
