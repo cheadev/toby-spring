@@ -24,9 +24,9 @@ class UserDaoTest {
 
     @BeforeEach
     void setUp() {
-          user1 = new User("id1","name1","pwd1");
-        user2 = new User("id2","name2","pwd2");
-        user3 = new User("id3","name3","pwd3");
+        user1 = new User("id1","name1","pwd1", Level.BASIC, 1, 0);
+        user2 = new User("id2","name2","pwd2", Level.SILVER, 55, 10);
+        user3 = new User("id3","name3","pwd3", Level.GOLD, 100, 40);
     }
 
     @Test
@@ -84,6 +84,24 @@ class UserDaoTest {
 
         List<User> users = dao.getAll();
         assertEquals(3, users.size());
+
+        assertEquals(user1, users.get(0));
+        assertEquals(user2, users.get(1));
+        assertEquals(user3, users.get(2));
+    }
+
+    @Test
+    void update() {
+        dao.deleteAll();
+
+        dao.add(user1);
+        dao.add(user2);
+        dao.add(user3);
+
+        user1.setName("mod1");
+        dao.update(user1);
+
+        List<User> users = dao.getAll();
 
         assertEquals(user1, users.get(0));
         assertEquals(user2, users.get(1));
