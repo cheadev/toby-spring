@@ -13,8 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static springbook.user.domain.UserService.MAX_RECOMMEND_FOR_GOLD;
-import static springbook.user.domain.UserService.MIN_LOGCOUNT_FOR_SILVER;
+import static springbook.user.domain.UserServiceImpl.MAX_RECOMMEND_FOR_GOLD;
+import static springbook.user.domain.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = "file:src/main/resources/applicationContext.xml")
@@ -26,7 +26,7 @@ class UserServiceTest {
     @Autowired
     private MailSender mailSender;
     @Autowired
-    private UserService userService;
+    private UserServiceImpl userServiceImpl;
     private List<User> users;
 
     @BeforeEach
@@ -48,8 +48,8 @@ class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userService.add(userWithLevel);
-        userService.add(userWithoutLevel);
+        userServiceImpl.add(userWithLevel);
+        userServiceImpl.add(userWithoutLevel);
 
         User userWithLevelGet = userDao.get(userWithLevel.getId());
         User userWithoutLevelGet = userDao.get(userWithoutLevel.getId());
@@ -65,8 +65,8 @@ class UserServiceTest {
             userDao.add(user);
 
         MockMailSender mockMailSender = new MockMailSender();
-        userService.setMailSender(mockMailSender);
-        userService.upgradeLevels();
+        userServiceImpl.setMailSender(mockMailSender);
+        userServiceImpl.upgradeLevels();
 
         assertTrue(checkLevel(users.get(0), Level.BASIC));
         assertTrue(checkLevel(users.get(1), Level.SILVER));
@@ -82,17 +82,20 @@ class UserServiceTest {
 
     @Test
     void upgradeAllOrNothing() {
-        UserService testUserService = new TestUserService(users.get(3).getId());
+        TestUserService testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
-        testUserService.setTransactionManager(transactionManager);
         testUserService.setMailSender(mailSender);
+
+        UserServiceTx userServiceTx = new UserServiceTx();
+        userServiceTx.setUserService(testUserService);
+        userServiceTx.setTransactionManager(transactionManager);
 
         userDao.deleteAll();
         for(User user : users)
             userDao.add(user);
 
         try {
-            testUserService.upgradeLevels();
+            userServiceTx.upgradeLevels();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

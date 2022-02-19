@@ -19,9 +19,12 @@
     <bean id="mailSender" class="springbook.user.domain.MockMailSender">
         <property name="host" value="mail.server.com" />
     </bean>
-    <bean id="userService" class="springbook.user.domain.UserService">
+    <bean id="userServiceImpl" class="springbook.user.domain.UserServiceImpl">
         <property name="userDao" ref="userDao" />
-        <property name="transactionManager" ref="transactionManager" />
         <property name="mailSender" ref="mailSender" />
+    </bean>
+    <bean id="userService" class="springbook.user.domain.UserServiceTx">
+        <property name="userService" ref="userServiceImpl" />
+        <property name="transactionManager" ref="transactionManager" />
     </bean>
 </beans>
