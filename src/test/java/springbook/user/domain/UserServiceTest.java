@@ -60,19 +60,19 @@ class UserServiceTest {
 
     @Test
     void upgradeLevels() {
-        userDao.deleteAll();
-        for(User user : users)
-            userDao.add(user);
-
+        UserServiceImpl testUserService = new UserServiceImpl();
+        MockUserDao mockUserDao = new MockUserDao(users);
         MockMailSender mockMailSender = new MockMailSender();
-        userServiceImpl.setMailSender(mockMailSender);
-        userServiceImpl.upgradeLevels();
 
-        assertTrue(checkLevel(users.get(0), Level.BASIC));
-        assertTrue(checkLevel(users.get(1), Level.SILVER));
-        assertTrue(checkLevel(users.get(2), Level.SILVER));
-        assertTrue(checkLevel(users.get(3), Level.GOLD));
-        assertTrue(checkLevel(users.get(4), Level.GOLD));
+        testUserService.setUserDao(mockUserDao);
+        testUserService.setMailSender(mockMailSender);
+
+        testUserService.upgradeLevels();
+
+        List<User> updates = mockUserDao.getUpdates();
+        assertEquals(2, updates.size());
+        assertEquals(Level.SILVER, updates.get(0).getLevel());
+        assertEquals(Level.GOLD, updates.get(1).getLevel());
 
         List<String> requests = mockMailSender.getRequests();
         assertEquals(2, requests.size());
