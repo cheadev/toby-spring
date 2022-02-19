@@ -4,7 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailSender;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -21,13 +23,15 @@ import static springbook.user.domain.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 @ContextConfiguration(locations = "file:src/main/resources/applicationContext.xml")
 class UserServiceTest {
     @Autowired
+    ApplicationContext context;
+    @Autowired
     private UserDao userDao;
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
     private MailSender mailSender;
     @Autowired
-    private UserServiceImpl userServiceImpl;
+    private UserService userService;
     private List<User> users;
 
     @BeforeEach
@@ -49,8 +53,8 @@ class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userServiceImpl.add(userWithLevel);
-        userServiceImpl.add(userWithoutLevel);
+        userService.add(userWithLevel);
+        userService.add(userWithoutLevel);
 
         User userWithLevelGet = userDao.get(userWithLevel.getId());
         User userWithoutLevelGet = userDao.get(userWithoutLevel.getId());
@@ -82,29 +86,24 @@ class UserServiceTest {
     }
 
     @Test
-    void upgradeAllOrNothing() {
+    @DirtiesContext
+    void upgradeAllOrNothing() throws Exception {
         TestUserService testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
         testUserService.setMailSender(mailSender);
 
 
-        TransactionHandler transactionHandler = new TransactionHandler();
-        transactionHandler.setTarget(testUserService);
-        transactionHandler.setTransactionManager(transactionManager);
-        transactionHandler.setPattern("upgradeLevels");
+        TxProxyFactoryBean proxy = context.getBean("&userService", TxProxyFactoryBean.class);
+        proxy.setTarget(testUserService);
 
-        UserService proxy = (UserService) Proxy.newProxyInstance(
-                getClass().getClassLoader(),
-                new Class[]{UserService.class},
-                transactionHandler
-        );
+        UserService txUserService = (UserService) proxy.getObject();
 
         userDao.deleteAll();
         for(User user : users)
             userDao.add(user);
 
         try {
-            proxy.upgradeLevels();
+            txUserService.upgradeLevels();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
