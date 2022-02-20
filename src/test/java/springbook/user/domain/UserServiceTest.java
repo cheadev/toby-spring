@@ -3,6 +3,9 @@ package springbook.user.domain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.aop.support.DefaultPointcutAdvisor;
+import org.springframework.aop.support.NameMatchMethodPointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailSender;
@@ -92,11 +95,9 @@ class UserServiceTest {
         testUserService.setUserDao(userDao);
         testUserService.setMailSender(mailSender);
 
-
-        TxProxyFactoryBean proxy = context.getBean("&userService", TxProxyFactoryBean.class);
-        proxy.setTarget(testUserService);
-
-        UserService txUserService = (UserService) proxy.getObject();
+        ProxyFactoryBean proxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class);
+        proxyFactoryBean.setTarget(testUserService);
+        UserService txUserService = (UserService) proxyFactoryBean.getObject();
 
         userDao.deleteAll();
         for(User user : users)
@@ -104,9 +105,7 @@ class UserServiceTest {
 
         try {
             txUserService.upgradeLevels();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+        } catch (Exception e) {}
 
         assertTrue(checkLevel(users.get(1), Level.BASIC));
         assertTrue(checkLevel(users.get(3), Level.SILVER));
