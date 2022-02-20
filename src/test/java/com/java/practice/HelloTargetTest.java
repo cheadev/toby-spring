@@ -2,6 +2,8 @@ package com.java.practice;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.aop.ClassFilter;
+import org.springframework.aop.Pointcut;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.NameMatchMethodPointcut;
@@ -81,5 +83,51 @@ class HelloTargetTest {
         assertEquals("HELLO TOBY", proxyFactoryBeanProxy.sayHello("Toby"));
         assertEquals("HI TOBY", proxyFactoryBeanProxy.sayHi("Toby"));
         assertEquals("Thank You Toby", proxyFactoryBeanProxy.sayThankYou("Toby"));
+    }
+
+    @Test
+    void classNamePointcutAdvisor() {
+        NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut() {
+            @Override
+            public ClassFilter getClassFilter() {
+                return new ClassFilter() {
+                    @Override
+                    public boolean matches(Class<?> clazz) {
+                        return clazz.getSimpleName().startsWith("HelloT");
+                    }
+                };
+            }
+        };
+        pointcut.setMappedName("sayH*");
+
+        ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
+        proxyFactoryBean.setTarget(new HelloTarget());
+        proxyFactoryBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice()));
+        Hello proxyFactoryBeanProxy = (Hello) proxyFactoryBean.getObject();
+
+        class HelloWorld extends HelloTarget {}
+        class HelloToby extends HelloTarget {}
+
+        checkAdviced(new HelloTarget(), pointcut, true);
+        checkAdviced(new HelloWorld(), pointcut, false);
+        checkAdviced(new HelloToby(), pointcut, true);
+    }
+
+    private void checkAdviced(Object target, Pointcut pointcut, boolean adviced) {
+        ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
+        proxyFactoryBean.setTarget(target);
+        proxyFactoryBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice()));
+        Hello proxyFactoryBeanProxy = (Hello) proxyFactoryBean.getObject();
+
+        if(adviced) {
+            assertEquals("HELLO TOBY", proxyFactoryBeanProxy.sayHello("Toby"));
+            assertEquals("HI TOBY", proxyFactoryBeanProxy.sayHi("Toby"));
+            assertEquals("Thank You Toby", proxyFactoryBeanProxy.sayThankYou("Toby"));
+        }
+        else {
+            assertEquals("Hello Toby", proxyFactoryBeanProxy.sayHello("Toby"));
+            assertEquals("Hi Toby", proxyFactoryBeanProxy.sayHi("Toby"));
+            assertEquals("Thank You Toby", proxyFactoryBeanProxy.sayThankYou("Toby"));
+        }
     }
 }
