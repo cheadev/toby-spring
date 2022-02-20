@@ -3,22 +3,15 @@ package springbook.user.domain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.aop.framework.ProxyFactoryBean;
-import org.springframework.aop.support.DefaultPointcutAdvisor;
-import org.springframework.aop.support.NameMatchMethodPointcut;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.mail.MailSender;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.PlatformTransactionManager;
 
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static springbook.user.domain.UserServiceImpl.MAX_RECOMMEND_FOR_GOLD;
 import static springbook.user.domain.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 
@@ -26,15 +19,12 @@ import static springbook.user.domain.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 @ContextConfiguration(locations = "file:src/main/resources/applicationContext.xml")
 class UserServiceTest {
     @Autowired
-    ApplicationContext context;
-    @Autowired
     private UserDao userDao;
     @Autowired
-    private PlatformTransactionManager transactionManager;
-    @Autowired
-    private MailSender mailSender;
-    @Autowired
     private UserService userService;
+    @Autowired
+    private UserService testUserService;
+
     private List<User> users;
 
     @BeforeEach
@@ -89,22 +79,13 @@ class UserServiceTest {
     }
 
     @Test
-    @DirtiesContext
     void upgradeAllOrNothing() throws Exception {
-        TestUserService testUserService = new TestUserService(users.get(3).getId());
-        testUserService.setUserDao(userDao);
-        testUserService.setMailSender(mailSender);
-
-        ProxyFactoryBean proxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class);
-        proxyFactoryBean.setTarget(testUserService);
-        UserService txUserService = (UserService) proxyFactoryBean.getObject();
-
         userDao.deleteAll();
         for(User user : users)
             userDao.add(user);
 
         try {
-            txUserService.upgradeLevels();
+            testUserService.upgradeLevels();
         } catch (Exception e) {}
 
         assertTrue(checkLevel(users.get(1), Level.BASIC));
@@ -115,4 +96,5 @@ class UserServiceTest {
         User get = userDao.get(user.getId());
         return get.getLevel().equals(expected);
     }
+
 }
